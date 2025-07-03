@@ -10,6 +10,9 @@ import {
   Eye,
   ArrowLeft
 } from 'lucide-react';
+import { ForecastCardSkeleton } from './SkeletonLoading';
+import SearchBar from './SearchBar';
+import Background from './Background';
 
 const ForecastView = ({ onBack }) => {
   const [forecastData, setForecastData] = useState(null);
@@ -17,10 +20,10 @@ const ForecastView = ({ onBack }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchForecastData();
+    getCurrentLocationForecast();
   }, []);
 
-  const fetchForecastData = async () => {
+  const getCurrentLocationForecast = async () => {
     setLoading(true);
     setError(null);
 
@@ -30,31 +33,72 @@ const ForecastView = ({ onBack }) => {
       return;
     }
 
+    // Timeout für Geolocation auf 5 Sekunden setzen
+    const timeoutId = setTimeout(() => {
+      setError('Location request timed out. Using default location.');
+      fetchForecastByCity('Salzburg'); // Fallback zu Salzburg
+    }, 5000);
+
     navigator.geolocation.getCurrentPosition(
       async (position) => {
+        clearTimeout(timeoutId);
         const { latitude, longitude } = position.coords;
-        try {
-          const response = await fetch(
-            `https://api.weatherapi.com/v1/forecast.json?key=${process.env.NEXT_PUBLIC_WEATHER_API_KEY}&q=${latitude},${longitude}&days=3&aqi=no&alerts=no`
-          );
-          
-          if (!response.ok) {
-            throw new Error('Forecast data not found');
-          }
-          
-          const data = await response.json();
-          setForecastData(data);
-        } catch (err) {
-          setError('Failed to fetch forecast data. Please try again.');
-        } finally {
-          setLoading(false);
-        }
+        await fetchForecastByCoords(latitude, longitude);
       },
       (error) => {
-        setError('Unable to retrieve your location.');
-        setLoading(false);
+        clearTimeout(timeoutId);
+        console.log('Geolocation error, using fallback location');
+        // Fallback zu Salzburg wenn Geolocation fehlschlägt
+        fetchForecastByCity('Salzburg');
+      },
+      {
+        timeout: 5000, // 5 Sekunden Timeout
+        enableHighAccuracy: false, // Schnellere, weniger genaue Position
+        maximumAge: 300000 // 5 Minuten Cache
       }
     );
+  };
+
+  const fetchForecastByCoords = async (lat, lon) => {
+    try {
+      const response = await fetch(
+        `https://api.weatherapi.com/v1/forecast.json?key=${process.env.NEXT_PUBLIC_WEATHER_API_KEY}&q=${lat},${lon}&days=3&aqi=no&alerts=no`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Forecast data not found');
+      }
+      
+      const data = await response.json();
+      setForecastData(data);
+      setError(null);
+    } catch (err) {
+      setError('Failed to fetch forecast data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchForecastByCity = async (city) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `https://api.weatherapi.com/v1/forecast.json?key=${process.env.NEXT_PUBLIC_WEATHER_API_KEY}&q=${city}&days=3&aqi=no&alerts=no`
+      );
+      
+      if (!response.ok) {
+        throw new Error('City not found');
+      }
+      
+      const data = await response.json();
+      setForecastData(data);
+      setError(null);
+    } catch (err) {
+      setError('City not found. Please try a different city.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getDayName = (dateStr) => {
@@ -78,11 +122,35 @@ const ForecastView = ({ onBack }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-blue-700 to-blue-500">
-        <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6">
-          <div className="text-center text-white">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-            <p>Loading 3-day forecast...</p>
+      <div className="min-h-screen relative overflow-hidden">
+        <Background weatherData={forecastData} />
+        <div className="relative z-10 p-6 max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center gap-4 mb-4">
+              <button
+                onClick={onBack}
+                className="bg-white/10 backdrop-blur-sm rounded-full p-2 hover:bg-white/20 transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5 text-white" />
+              </button>
+              <div>
+                <h1 className="text-3xl font-bold text-white flex items-center gap-2">
+                  <Calendar className="w-8 h-8" />
+                  3-Day Forecast
+                </h1>
+                <p className="text-white/70">
+                  Loading forecast data...
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Skeleton Forecast Cards */}
+          <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 max-w-5xl mx-auto">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <ForecastCardSkeleton key={index} />
+            ))}
           </div>
         </div>
       </div>
@@ -91,13 +159,14 @@ const ForecastView = ({ onBack }) => {
 
   if (error) {
     return (
-      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-blue-700 to-blue-500">
+      <div className="min-h-screen relative overflow-hidden">
+        <Background weatherData={forecastData} />
         <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6">
           <div className="bg-red-500/20 backdrop-blur-sm rounded-xl p-6 text-center text-white border border-red-500/30 max-w-md">
             <h2 className="text-xl font-semibold mb-2">Error</h2>
             <p className="mb-4">{error}</p>
             <button
-              onClick={fetchForecastData}
+              onClick={getCurrentLocationForecast}
               className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors"
             >
               Try Again
@@ -109,7 +178,8 @@ const ForecastView = ({ onBack }) => {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-blue-700 to-blue-500">
+    <div className="min-h-screen relative overflow-hidden">
+      <Background weatherData={forecastData} />
       <div className="relative z-10 p-6 max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -132,12 +202,21 @@ const ForecastView = ({ onBack }) => {
           </div>
           
           {forecastData && (
-            <div className="text-white/80">
+            <div className="text-white/80 mb-6">
               <p className="text-lg">
                 {forecastData.location.name}, {forecastData.location.country}
               </p>
             </div>
           )}
+
+          {/* Search Bar */}
+          <div className="max-w-md mx-auto mb-8">
+            <SearchBar 
+              onSearch={fetchForecastByCity}
+              onLocationClick={getCurrentLocationForecast}
+              loading={loading}
+            />
+          </div>
         </div>
 
         {/* Forecast Cards */}

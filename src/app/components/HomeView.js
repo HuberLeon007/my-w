@@ -32,14 +32,29 @@ const HomeView = () => {
     }
 
     setLoading(true);
+    
+    // Timeout für Geolocation auf 5 Sekunden setzen
+    const timeoutId = setTimeout(() => {
+      console.log('Location request timed out, using fallback');
+      fetchWeatherByCity('Salzburg'); // Fallback zu Salzburg
+    }, 5000);
+
     navigator.geolocation.getCurrentPosition(
       async (position) => {
+        clearTimeout(timeoutId);
         const { latitude, longitude } = position.coords;
         await fetchWeatherByCoords(latitude, longitude);
       },
       (error) => {
-        setError('Unable to retrieve your location. Please search for a city.');
-        setLoading(false);
+        clearTimeout(timeoutId);
+        console.log('Geolocation error, using fallback location');
+        // Fallback zu Salzburg wenn Geolocation fehlschlägt
+        fetchWeatherByCity('Salzburg');
+      },
+      {
+        timeout: 5000, // 5 Sekunden Timeout
+        enableHighAccuracy: false, // Schnellere, weniger genaue Position
+        maximumAge: 300000 // 5 Minuten Cache
       }
     );
   };
