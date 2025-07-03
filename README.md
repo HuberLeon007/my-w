@@ -13,37 +13,6 @@ A beautiful, modern weather application built with Next.js, featuring real-time 
 - 🌅 **Sunrise/Sunset Times**: View precise sunrise and sunset times
 - 💨 **Detailed Weather Info**: Temperature, humidity, wind speed, pressure, and visibility
 
-## Setup Instructions 🚀
-
-### 1. Get Your Weather API Key
-
-1. Visit [OpenWeatherMap](https://openweathermap.org/api)
-2. Sign up for a free account
-3. Navigate to the API section and generate your API key
-4. Copy your API key (it may take a few minutes to activate)
-
-### 2. Configure the Application
-
-1. Open the `.env.local` file in the project root
-2. Replace `YOUR_API_KEY_HERE` with your actual OpenWeatherMap API key:
-   ```
-   NEXT_PUBLIC_WEATHER_API_KEY=your_actual_api_key_here
-   ```
-
-### 3. Install Dependencies
-
-```bash
-npm install
-```
-
-### 4. Run the Development Server
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
 ## Usage 🎯
 
 1. **Current Location**: Click "Use Current Location" to get weather for your current position
@@ -78,20 +47,5 @@ The app includes dynamic visual effects based on weather conditions:
 - Firefox
 - Safari
 - Edge
-
-**Note**: Geolocation features require HTTPS in production and user permission.
-
-## Contributing 🤝
-
-Feel free to contribute to this project by:
-- Reporting bugs
-- Suggesting new features
-- Submitting pull requests
-
-## License 📄
-
-This project is open source and available under the MIT License.
-
----
 
 Built with ❤️ for beautiful weather experiences!
